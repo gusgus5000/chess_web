@@ -1,11 +1,44 @@
-# React + TypeScript + Vite
+# Chess Game with AI
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A web-based chess game where you can play against a Stockfish AI opponent. Built with React, TypeScript, and Vite.
 
-Currently, two official plugins are available:
+## Play Online
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Visit [https://gusgus5000.github.io/chess_web/](https://gusgus5000.github.io/chess_web/) to play the game online.
+
+## Features
+
+- Play chess against the Stockfish AI engine
+- Responsive chess board with piece movement validation
+- Game status display (check, checkmate, draw)
+- New game functionality
+- AI difficulty settings
+
+## Development
+
+To run the project locally:
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+## Deployment
+
+The game is automatically deployed to GitHub Pages when changes are pushed to the main branch.
+
+## Technologies Used
+
+- React
+- TypeScript
+- Vite
+- chess.js
+- Stockfish
 
 ## Expanding the ESLint configuration
 
@@ -52,3 +85,4 @@ export default tseslint.config({
   },
 })
 ```
+ // by aiden
