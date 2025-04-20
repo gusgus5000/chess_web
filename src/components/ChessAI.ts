@@ -1,8 +1,25 @@
+export type Difficulty = 'easy' | 'medium' | 'hard';
+
+interface DifficultySettings {
+  depth: number;
+  moveTime: number;
+  skill: number;
+  earlyMoveThreshold?: number;
+}
+
 class ChessAI {
   private engine: Worker | null = null;
   private isReady: boolean = false;
+  private difficulty: Difficulty = 'medium';
 
-  constructor() {
+  private difficultySettings: Record<Difficulty, DifficultySettings> = {
+    easy: { depth: 5, moveTime: 200, skill: 3, earlyMoveThreshold: 50 },
+    medium: { depth: 8, moveTime: 500, skill: 10, earlyMoveThreshold: 150 },
+    hard: { depth: 12, moveTime: 1000, skill: 20 }
+  };
+
+  constructor(initialDifficulty: Difficulty = 'medium') {
+    this.difficulty = initialDifficulty;
     this.initEngine();
   }
 
@@ -16,6 +33,7 @@ class ChessAI {
           this.engine?.postMessage('isready');
         } else if (data === 'readyok') {
           this.isReady = true;
+          this.configureEngine();
         }
       };
 
@@ -25,15 +43,54 @@ class ChessAI {
     }
   }
 
-  async getBestMove(fen: string, depth: number = 15): Promise<string> {
+  private configureEngine() {
+    if (!this.engine) return;
+    const settings = this.difficultySettings[this.difficulty];
+    
+    // Configure Stockfish settings for optimal speed/strength balance
+    this.engine.postMessage('setoption name Skill Level value ' + settings.skill);
+    this.engine.postMessage('setoption name MultiPV value 1');
+    this.engine.postMessage('setoption name Contempt value 0');
+    this.engine.postMessage('setoption name Hash value 16');
+    this.engine.postMessage('setoption name Threads value 2');
+    this.engine.postMessage('setoption name Move Overhead value 10');
+  }
+
+  setDifficulty(difficulty: Difficulty) {
+    this.difficulty = difficulty;
+    if (this.isReady) {
+      this.configureEngine();
+    }
+  }
+
+  async getBestMove(fen: string): Promise<string> {
     return new Promise((resolve) => {
       if (!this.engine || !this.isReady) {
-        setTimeout(() => this.getBestMove(fen, depth).then(resolve), 100);
+        setTimeout(() => this.getBestMove(fen).then(resolve), 100);
         return;
       }
 
+      const settings = this.difficultySettings[this.difficulty];
+      let hasEarlyMove = false;
+
       const messageHandler = (e: MessageEvent) => {
         const data = e.data;
+        
+        // Handle early move for easier difficulties
+        if (settings.earlyMoveThreshold && data.startsWith('info') && !hasEarlyMove) {
+          const match = data.match(/score cp (-?\d+)/);
+          if (match && data.includes('depth')) {
+            const score = parseInt(match[1]);
+            const currentDepth = parseInt(data.match(/depth (\d+)/)[1]);
+            
+            // Make a move early if we have a clearly good position
+            if (currentDepth >= 4 && Math.abs(score) > settings.earlyMoveThreshold) {
+              hasEarlyMove = true;
+              this.engine?.postMessage('stop');
+            }
+          }
+        }
+
         if (data.startsWith('bestmove')) {
           const move = data.split(' ')[1];
           this.engine?.removeEventListener('message', messageHandler);
@@ -43,7 +100,7 @@ class ChessAI {
 
       this.engine.addEventListener('message', messageHandler);
       this.engine.postMessage(`position fen ${fen}`);
-      this.engine.postMessage(`go depth ${depth}`);
+      this.engine.postMessage(`go movetime ${settings.moveTime} depth ${settings.depth}`);
     });
   }
 
